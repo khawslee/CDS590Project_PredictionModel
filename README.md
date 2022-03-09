@@ -1,1 +1,3 @@
-# CDS590Project_PredictionModel
+#Demand Forecasting of Fast Moving Consumer Goods Distributor
+
+Time series generator & Forecasting application

@@ -9,13 +9,13 @@ import getopt
 import warnings
 warnings.filterwarnings("ignore")
 
-# Define test period
+# Define test period for model evaluation
 test_period = 6
-# Define forecast period
+# Define forecast period for future predictions
 forecast_period = 3
-# Define data file
+# Define data file containing list of items to forecast
 data_file = "data1.csv"
-# Define Predictive model
+# Define Predictive models to be used
 prediction_model = "sarimax,prophet,xgboost,hwexsmooth"
 
 # Command line arguments pass to script
@@ -42,15 +42,16 @@ print(prediction_list)
 
 # Connecting to DataWarehouse
 conn = pg_helper.postgresql_connect()
-# Define the column name
+# Define the column name for the data to be extracted from Datawarehouse
 column_names = ["debtorcode", "docdate", "y", "category", "projno", "month_year"]
 
-# Select data group by month_year,debtorcode,category,projno
+# Select data group by month_year,debtorcode,category,projno from Datawarehouse
 sql_string = "SELECT * FROM (SELECT ivz.\"DebtorCode\" AS debtorcode, ivz.\"DocDate\" AS docdate, ivdtlz.\"TaxCurrencyTaxableAmt\" AS taxamount, it.\"ItemType\" AS category, COALESCE ('AC',NULL,'AC') AS projno, to_char(ivz.\"DocDate\", 'YYYY-MM') AS month_year FROM \"IVDTL\" AS ivdtlz INNER JOIN \"IV\" AS ivz ON ivdtlz.\"DocKey\"=ivz.\"DocKey\" INNER JOIN \"Item\" AS it ON it.\"ItemCode\" = ivdtlz.\"ItemCode\" WHERE ivdtlz.\"ItemCode\" IS NOT NULL AND ivdtlz.\"TaxCurrencyTaxableAmt\" > 0 AND \"ProjNo\" IS NULL AND ivz.\"DocDate\" < date_trunc('month', CURRENT_DATE) UNION ALL SELECT debtorcode, docdate, amount AS taxamount, category, COALESCE ('UL',NULL,'UL') AS projno, to_char(docdate, 'YYYY-MM') AS month_year FROM unilever_inv WHERE invtype='Normal' AND docdate < date_trunc('month', CURRENT_DATE)) AS na WHERE debtorcode IN (SELECT * FROM (SELECT ivz.\"DebtorCode\" AS debtorcode FROM \"IVDTL\" AS ivdtlz INNER JOIN \"IV\" AS ivz ON ivdtlz.\"DocKey\"=ivz.\"DocKey\" INNER JOIN \"Item\" AS it ON it.\"ItemCode\" = ivdtlz.\"ItemCode\" WHERE ivdtlz.\"ItemCode\" IS NOT NULL AND ivdtlz.\"TaxCurrencyTaxableAmt\" > 0 AND \"ProjNo\" IS NULL AND ivz.\"DocDate\" >= date_trunc('month', CURRENT_DATE- INTERVAL '3' MONTH) UNION ALL SELECT debtorcode FROM unilever_inv WHERE invtype='Normal' AND docdate >= date_trunc('month', CURRENT_DATE- INTERVAL '3' MONTH)) na GROUP BY debtorcode)"
 
 # Connect to DataWarehouse, query the data and put into dataframe
 df_full = pg_helper.postgresql_to_dataframe(conn, sql_string, column_names)
 
+# Define the column name for the sales forecast data to be extracted from Datawarehouse
 column_names = ["debtorcode", "category","month_year", "projno"]
 sql_string = "SELECT debtorcode, category,last_trainmy,projno  FROM sales_forecast"
 # Connect to DataWarehouse, query the data and put into dataframe

@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 from io import StringIO
 
+# This script provides helper functions for interacting with a PostgreSQL database, including connecting to the database, executing queries, and copying data from pandas DataFrames to database tables.
 # Connection parameters for PostgreSQL DataWarehouse
 main_param_dic = {
     "host"      : "localhost",
